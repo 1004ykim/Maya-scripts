@@ -1,0 +1,385 @@
+
+
+
+global proc ReduceBones_root() {
+    
+    select -r "root";
+    select -hi;
+    string $ListOfBones[] = `ls -sl -typ joint`;
+    string $removeroot[] = {"root"};
+    string $sel[] = stringArrayRemove($removeroot, $ListOfBones);
+
+    selectKey;
+    cutKey -animation keys -clear;
+
+    for ($each in $sel) {
+        string $buffer[];
+        string $find_non = `match "non_" $each`;  
+
+            if ( size ( $find_non ) > 0 )   {
+                $name_parent = `listRelatives -p $each`;
+                $name_child = `listRelatives -c $each`;
+                $nonTokens = `tokenize $each "_" $buffer`;
+//              print ($each + "\n");
+//              print $name_parent;
+//              print $name_child;
+//              print ("========" + "\n");
+                parent $name_child $name_parent;
+            }
+    }
+
+    for ($each in $sel) {
+        string $find_non = `match "non_" $each`; 
+            if ( size ( $find_non ) > 0 )   {
+                select -r $each;
+                doDelete;
+            }
+    }                   
+}
+
+
+
+
+
+
+
+global proc Unit_change()   {
+
+currentUnit -linear "cm"; 
+currentUnit -query -linear; 
+currentUnit -time ntsc;
+playbackOptions -min 1  -max 100;
+
+removeTextureWindow polyTexturePlacementPanel1;
+removeGraphEditor graphEditor1;
+removeTextureWindow polyTexturePlacementPanel1;
+removeComponentEditorPanel componentEditorPanel1;
+removeRefEdPanel referenceEditorPanel1;
+
+setAttr "perspShape.nearClipPlane" 10;
+setAttr "perspShape.farClipPlane" 10000000;
+
+currentTime 1 ;
+
+}
+
+
+
+
+
+global proc AttachtoTarget()  {
+
+    select -r "root";
+    select -hi;
+    string $ListOfBones[] = `ls -sl -typ joint`;
+
+    for ($each in $ListOfBones) {
+        string $Name_with_Ref = ("ref_" + $each);
+       pointConstraint -offset 0 0 0 -weight 1 $Name_with_Ref $each;
+      orientConstraint -offset 0 0 0 -weight 1 $Name_with_Ref $each;
+//         parentConstraint -mo -weight 1 $Name_with_Ref $each;
+    }   
+     
+}
+
+
+
+
+
+global proc DeleteConstrains()    {
+    
+    select -r "root";
+    select -hi;
+    $SHJoints = `ls -sl -type "joint"`;
+    string $each;
+    for ($each in $SHJoints)
+    {
+      delete -constraints $each;
+    }
+
+}
+
+
+
+
+
+
+
+
+global proc Export_unit_Mesh (string $GetMetaFileName) {
+
+    string $unitname_list = $GetMetaFileName;
+    string $a_unitname[];
+    $numTokens = `tokenize $unitname_list "," $a_unitname` ;
+    int $EdFr;
+
+    string $a_unitname_path = "D:/Git/shadow_vr/Assets/Bundled/units/" + $a_unitname[0] + "/";
+    string $a_unitname_pathext = $a_unitname_path + $a_unitname[0] + ".fbx";
+
+    file -f -o $a_unitname_pathext;
+    select -r "root";
+
+    Unit_change();
+
+    ReduceBones_root();
+
+    select -r "model";
+    FBXExport -f $a_unitname_pathext -s;
+
+}
+
+
+
+
+
+
+
+proc MetaEditor(string $GetMetaFileName)  {
+// Load the Meta file
+string $exampleFileName = $GetMetaFileName;
+$fileId = fopen($exampleFileName,"r");
+string $nextLine = `fgetline $fileId`;
+string $OutputText[];
+
+int $outIndex = 0;
+
+// Repeat until no new lines
+while ( size( $nextLine ) > 0 ) 
+{
+    // Remove all subtree references
+    string $find_non = "";
+    do
+    {
+        $find_non = `match "/non_[^/]*/" $nextLine`; 
+        if ( size ( $find_non ) > 0 )   
+        {
+            // Remove it from the string
+            $nextLine = `substitute $find_non $nextLine "/"`;
+//            print ("Removing: " + $find_non + " from " + $nextLine);
+        }
+    } while (size ( $find_non ) > 0);
+
+    // Find a line ending with the non
+    int $gotnext = 0;
+    $find_non = `match "non_.*" $nextLine`; 
+    //print ("Finding end: " + $find_non+ "\n");
+    if ( size ( $find_non ) > 0 && endsWith($nextLine, $find_non))
+    {
+        // remove this line by skipping it
+//        print ("Skipping: " + $nextLine);
+
+        // Check if there is a "weight" on the next line
+        $nextLine = `fgetline $fileId`;
+        string $find_weight = `match "weight:" $nextLine`; 
+        if ( size ( $find_non ) > 0 )
+        {
+//           print ("Skipping weight line");
+        }
+        else
+        {
+            $gotnext = 1;
+        }
+    }
+    else
+    {
+        // print ("Writing " + $nextLine + "\n");
+        $OutputText[$outIndex] = $nextLine;
+        $outIndex++;
+    }
+
+    if ($gotnext == 0)
+    {
+        $nextLine = `fgetline $fileId`;
+    }
+}
+
+
+// Save new meta file
+string $exampleFileName = $GetMetaFileName;
+$fileId = fopen($exampleFileName,"w");
+$i = 0;
+while ( $i < size( $OutputText ) ) {
+    fprint($fileId,$OutputText[$i]);
+    $i++;
+}
+fclose($fileId);
+}
+
+
+
+
+
+
+global proc Open_unit_FBX (string $a_Unit_Name, string $clip_Name) {
+
+//    string $clip_Name = "attack1";
+    string $unitname_list = $a_Unit_Name;
+    string $a_unitname[];
+    string $attack_Name = $clip_Name;
+    $numTokens = `tokenize $unitname_list "," $a_unitname` ;
+    int $EdFr;
+
+    string $a_unitname_path = "D:/Git/shadow_vr/Assets/Bundled/units/" + $a_unitname[0] + "/animation/";
+    string $a_unitname_pathext = $a_unitname_path + $a_unitname[0] + $attack_Name + ".fbx";
+    string $ref_unitname_pathext = $a_unitname_pathext; 
+
+    file -f -o $a_unitname_pathext;
+    select -r "root";
+    file -force -options "v=0;" -typ "mayaAscii" -pr -es "D:/Temp.ma";
+    file -f -o "D:/Temp.ma";
+    file -r -type "FBX"  -ignoreVersion -gl -mergeNamespacesOnClash false -rpr "ref" -options "fbx"  $ref_unitname_pathext;
+
+    Unit_change();
+
+
+
+    ReduceBones_root();
+    AttachtoTarget(); 
+
+
+// find first and last keyframe animation
+    select ref_root;
+    float $howManyKeys[];
+    int $last;
+    string $sel[] = `ls -sl`;
+        for ($everySel in $sel)
+        {
+        string $myKeys[] = `keyframe -q -name $everySel`;
+        $howManyKeys = `keyframe -q -timeChange $myKeys[0]`;
+        $last = size($howManyKeys);
+        }
+    print ("\n1st Key: "+$howManyKeys[0]+" LastKey: "+$howManyKeys[$last-1]);
+
+
+
+    playbackOptions -min $howManyKeys[0]  -max $howManyKeys[$last-1] ;
+
+    select -r "root";
+    select -hi;
+    $bkFrame = $howManyKeys[0] + ":" + $howManyKeys[$last-1];
+    bakeSimulation -t $bkFrame;
+
+    DeleteConstrains(); 
+    file -removeReference -referenceNode "refRN";
+
+    select -r root;
+    FBXExport -f $a_unitname_pathext -s;
+
+
+//    print ($a_unitname_pathext + "\n");
+//              print $name_parent;
+//              print $name_child;
+//              print ("========" + "\n");
+
+}
+
+
+
+
+global proc GetNameFromWindow() {
+
+    string $buffer[];
+    string $list_of_units = `textField -q -text UnitName_for_Atom_to_fbx`;
+    $nubTokens = `tokenize $list_of_units "," $buffer`; 
+
+    for ($i=0; $i<$nubTokens; $i++){   
+       //print ($buffer[$i] + "\n");
+        Execute_P($buffer[$i]);
+    }               
+
+}
+
+
+
+
+
+global proc Execute_P(string $EachUnitName)   {
+
+
+    string $unitname_list = $EachUnitName;
+
+    string $a_unitname_path = "D:/Git/shadow_vr/Assets/Bundled/units/" + $unitname_list + "/animation/";
+
+    string $Path = $a_unitname_path;
+    
+    string $subfilelist[] = `getFileList -fld $a_unitname_path -filespec "*.fbx"`;
+            for ($i in $subfilelist)
+                {
+                string $unit_a_N = $unitname_list;    
+                string $s2 = substituteAllString ($i , $unit_a_N , "");
+                string $s3 = substituteAllString ($s2 , ".fbx" , "");
+                string $s4 = $Path + $unitname_list + $s3  + ".fbx.meta";
+                print ("===================================" + "\n");                
+                print ( $unit_a_N+ "\n" );
+                print ( $s2 + "\n" );
+                print ("===================================" + "\n"); 
+//Edit meta file    
+               MetaEditor ($s4);
+
+
+//Open animation FBX files
+            Open_unit_FBX($unit_a_N,$s3); 
+                }
+
+    
+    string $SendNameToMetaEditor = ($a_unitname_path + $unitname_list + "HitMask.mask") ;  
+    MetaEditor ($SendNameToMetaEditor );
+
+
+    Export_unit_Mesh ($EachUnitName);            
+
+}
+
+
+
+
+
+
+global proc LOWReduceBones()   {
+
+    if (`window -exists LOWReduceBones`)  {
+            deleteUI LOWReduceBones;
+            windowPref -remove LOWReduceBones;
+    }
+
+    if(`window -q -exists rename_UI`) {
+    deleteUI rename_UI; 
+    }   
+    
+    window -w 230 -h 150 -s true -maximizeButton 0 -t "Remove Bones" -le 900 LOWReduceBones;    
+
+    columnLayout -adj false;
+     
+        separator -w 270 -h 3 -style "in";
+        separator -w 270 -h 3 -style "none";
+ 
+            rowColumnLayout 
+            -numberOfColumns 3 
+            -columnAttach 1 "left" 5
+            -columnWidth 1 85 
+            -columnWidth 2 185; 
+        
+            text  -h 20 -w 55 -label "unit name:";
+            textField -h 20 -w 85 UnitName_for_Atom_to_fbx;
+            
+            setParent..;
+ 
+                separator -w 270 -h 15 -style "none";
+
+                    frameLayout -lv 0 -mw 1 -mh 2;
+
+                                rowLayout -nc 6 -adj 6;
+
+                                        text -h 20 -w 225 -l "        Export Animation           ";
+                                        button -h 20 -l "  Go!!  Go!!  " -bgc 0.5 1.0 0.5 -ann "export fbx function" -c "GetNameFromWindow()";                                         
+
+                                setParent ..;
+                        setParent ..;
+             
+                separator -w 270 -h 15 -style "none";
+
+    showWindow LOWReduceBones;
+
+}
+
+LOWReduceBones();
