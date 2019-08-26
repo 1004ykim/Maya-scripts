@@ -1,0 +1,200 @@
+
+// for cinematic video 20/Sep/2016 
+
+
+
+//// Shadowart path    ////
+proc string Shot_in_SceneDevelopment(string $NameOfShot)
+{
+    return "D:/Git/shadow/Assets/ScenesDevelopment/Cinematic/" + $NameOfShot + "/" ;
+}
+
+
+
+
+
+
+proc fbxexptcamera() {
+FBXExportSplitAnimationIntoTakes -clear;
+int $strf =`intField  -q -v craStartFrameIF`;
+int $endf =`intField  -q -v craEndFrameIF`;
+string $ShotName =`textField -q -text as_savedirTF`;
+string $fileNAM = `textField -q -text as_AnmNameTF`;
+
+string $IsPathOfShot = Shot_in_SceneDevelopment($ShotName);
+string $CamDirPath = ( $IsPathOfShot + "cam/" );
+
+string $mainCamName = "locator_Camera"; 
+string $targetCamName = "locator_Camera_Target";
+
+playbackOptions -min $strf  -max $endf;
+
+select -r "locator_Camera";
+select -add "locator_Camera_Target";
+$bakeFrame = $strf + ":" + $endf;
+bakeSimulation -t $bakeFrame;
+delete -constraints;
+
+FBXProperty Export|IncludeGrp|Animation  -v true;
+FBXProperty Export|IncludeGrp|Animation  -q;
+
+select $mainCamName;
+FBXExport -f ($CamDirPath + $fileNAM  + $mainCamName + ".fbx") -s;
+print ($CamDirPath + $fileNAM  + $mainCamName + ".fbx");
+
+select $targetCamName;
+FBXExport -f ($CamDirPath + $fileNAM  + $targetCamName + ".fbx") -s;
+print ($CamDirPath + $fileNAM  + $targetCamName + ".fbx");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// UI
+
+global proc sin_AnmCopyWindowProc()
+{
+    if (`window -exists my_AnmCopyWindow`)  {
+            deleteUI my_AnmCopyWindow;
+            windowPref -remove my_AnmCopyWindow;
+    }
+
+    if(`window -q -exists rename_UI`) {
+    deleteUI rename_UI; 
+    }   
+    
+    window -w 230 -h 170 -s true -maximizeButton 0 -t "Rapid Rig Exporter 2.12" -le 900 my_AnmCopyWindow;    
+
+    columnLayout -adj false;
+     
+        separator -w 270 -h 3 -style "in";
+        separator -w 270 -h 3 -style "none";
+        
+            rowColumnLayout 
+            -numberOfColumns 3 
+            -columnAttach 1 "left" 5
+            -columnWidth 1 85 
+            -columnWidth 2 185; 
+
+     //save dire
+
+        text -label "Shot Number";
+//        button -bgc 0.8 0.8 0.8 -l ".." -c as_pickDirProc;
+        textField -enterCommand  textFieldEnterCommand as_savedirTF;
+        setParent..;
+
+            rowColumnLayout 
+            -numberOfColumns 3 
+            -columnAttach 1 "left" 5
+            -columnWidth 1 85 
+            -columnWidth 2 185; 
+        
+            text -label "File Name :";
+            textField as_AnmNameTF;
+            
+            setParent..;
+ 
+                    frameLayout -lv 0 -mw 2 -mh 2;
+
+                                rowLayout -nc 6 -adj 6;
+
+                                        button -h 20 -l "Start" -ann "set current frame as start frame" -c "intField -e -v `currentTime -q` craStartFrameIF";
+                                        setParent -m ..;
+                                        intField -h 20 -w 35 -v `playbackOptions -q -min` craStartFrameIF;
+
+                                        button -h 20 -l " End " -ann "set current frame as end frame" -c "intField -e -v `currentTime -q` craEndFrameIF";
+                                        setParent -m ..;
+                                        intField -h 20 -w 35 -v `playbackOptions -q -max` craEndFrameIF;
+
+                                setParent ..;
+                        setParent ..;
+
+
+
+                    frameLayout -lv 0 -mw 1 -mh 2;
+
+                                rowLayout -nc 6 -adj 6;
+
+                                    button -w 135 -h 20 -l "Create Locator" -ann "for tank" -bgc 0.5 1.0 0.3 -c "GenerateCamLocator()";   
+                                    button -w 135 -h 20 -l"      Export Camera      " -bgc 0.5 1.0 0.7 -ann "export fbx function" -c "fbxexptcamera()";                                         
+
+                                setParent ..;
+                        setParent ..;
+             
+        separator -w 270 -h 1 -style "in";
+        separator -w 270 -h 1 -style "none";
+        
+            rowColumnLayout 
+            -numberOfColumns 3 
+            -columnAttach 1 "left" 5
+            -columnWidth 1 185 
+            -columnWidth 2 85; 
+
+        setParent..;
+
+
+    showWindow my_AnmCopyWindow;
+
+}
+
+
+
+
+
+
+
+proc GenerateCamLocator(){
+
+if (size(`ls locator_Camera`) != 0){
+    delete locator_Camera;
+}
+else {
+}
+
+if (size(`ls locator_Camera_Target`) != 0){
+    delete locator_Camera_Target;
+}
+else{
+}
+
+
+string $SelectedCameraName[] = `ls -sl`;
+float $mainCam_pos[] = `xform -q -ws -t $SelectedCameraName[0]`;
+float $mainCam_rot[] = `xform -q -ws -ro $SelectedCameraName[0]`;
+
+spaceLocator -n locator_Camera;
+pointConstraint -offset 0 0 0 -weight 1 $SelectedCameraName[0] locator_Camera;
+orientConstraint -offset 0 0 0 -weight 1 $SelectedCameraName[0] locator_Camera;
+
+
+spaceLocator -n locator_Camera_Target;
+select -r locator_Camera_Target;
+move $mainCam_pos[0] $mainCam_pos[1] $mainCam_pos[2];
+rotate $mainCam_rot[0] $mainCam_rot[1] $mainCam_rot[2];
+move -r -os -wd 0 0 -3000 ;
+parentConstraint  -mo -weight 1 $SelectedCameraName[0] locator_Camera_Target;
+
+expression -s "float $ncp;\n$ncp = `getAttr Main_CameraShape.nearClipPlane`;\nsetAttr locator_Camera.scaleX $ncp;";
+expression -s "float $fcp;\n$fcp = `getAttr Main_CameraShape.farClipPlane`;\nsetAttr locator_Camera.scaleY $fcp;";
+expression -s "float $fl;\nfloat $vfa;\nfloat $FoV;\n$fl = `getAttr Main_CameraShape.focalLength`;\n$vfa = `getAttr Main_CameraShape.verticalFilmAperture`;\n$Fov = 2.0 * atan((0.5*$vfa)/($fl*0.03937)) * 57.29578;\nsetAttr locator_Camera.scaleZ $Fov;";
+}
+
+
+
+
+proc readMayaSceneName()
+{
+    string $RFName = `textField -q -text MayaSceneName`;   
+file -f -options "v=0;"  -ignoreVersion  -typ "mayaAscii" -o $RFName;   
+}
+
+sin_AnmCopyWindowProc;
+
