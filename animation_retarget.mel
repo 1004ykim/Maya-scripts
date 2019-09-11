@@ -4,9 +4,7 @@
 
 
 
-
-
-//// Shadowart path    ////
+//// Shadowart path 
 
 proc string PathHeroes(string $InfatryFolderName)
 {
@@ -34,304 +32,12 @@ proc string PathGitMinions(string $NameOfInfatry)
 
 
 
-proc Bake_Rename() {
 
-    if( `objExists RRM_MAIN` ) {
-        unitreset();
-        bakeSkel();
-        deljunk(); 
-        takeoffendname();    
-        takeofffirstname();  
-        removeRef();
-    } 
-    else {
-        takeofffirstname();  
-        removeRef(); 
-    }
-}
 
 
 
-proc unitreset()    {
-    currentUnit -linear "cm"; 
-    currentUnit -query -linear; 
-    currentUnit -time ntsc;
-}
 
-
-
-
-proc bakeSkel()   {
-    int $strf =`intField  -q -v craStartFrameIF`;
-    int $endf =`intField  -q -v craEndFrameIF`;
-    playbackOptions -min $strf  -max $endf ;
-    select `ls -typ joint`;
-    $bakeFrame = $strf + ":" + $endf;
-    bakeSimulation -t $bakeFrame;
-}    
-
-
-
-proc deljunk()   {
-    select "*MAINSHJnt*";
-    select -hi; 
-    $SHJoints = `ls -sl -type "joint"`;
-    string $each;
-    for ($each in $SHJoints)
-    {
-      delete -constraints $each;
-    }
-    select "*MAINSHJnt*";
-    parent -w;
-    select -hi RRM_MAIN;
-    $rig = `ls -sl`;
-    lockNode -lock off $rig;
-    delete RRM_MAIN;
-    
-    select "*MAINSHJnt*";
-    select -tgl `ls -typ mesh`;
-    InvertSelection;
-    doDelete;
-} 
-
-
-
-proc takeofffirstname()   {
-    string $NameToRemove = `textField -q -text RemovePrefix`;
-    select "*MAIN*";
-    select -hi;
-    string $sel[] = `ls -sl -typ joint`;
-    for ($each in $sel) {
-      string $NewName = substituteAllString ($each , $NameToRemove , "");
-      print ($NewName + "\n");
-      rename $each $NewName;
-     }
-}
-
-
-
-proc takeoffendname()   {
-    select "*MAINSHJnt*";
-    select -hi;
-    string $sel[] = `ls -sl -typ joint`;
-    for ($each in $sel) {
-      string $NewName = substituteAllString ($each , "SHJnt" , "");
-      print ($NewName + "\n");
-      rename $each $NewName;
-     }
-}
-
-
-
-proc removeRef()    {
-string $mes[] = `ls -references refRN`;
-    
-    if ( size($mes) == 0 ){
-        print " Hey, you dont have ref.. files. no worry!";
-    }
-
-    else {
-        file -removeReference -referenceNode "refRN";
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-//// Open Infantry rig file ////    - Okay -   - Okay -   - Okay -   - Okay -   - Okay -   
-
-proc Open_Infantry_File() {
-    
-string $NameOfInfatry = `textField -q -text UnitName_for_Atom_to_Infantry`; 
-int $ChoiceOfDir = `radioButtonGrp -query -select CTRL_choice`;
-
-    if($ChoiceOfDir ==1){
-    // Path of Infantry folder in shadowart
-    string $IsPathOfShadowart = PathHeroes($NameOfInfatry);
-    string $nameFile = ( $IsPathOfShadowart + $NameOfInfatry + "_Rig.ma");
-    file -f -o $nameFile;
-    }
-
-
-    if($ChoiceOfDir ==2){
-    // Path of Infantry folder in shadowart
-    string $IsPathOfShadowart = PathMinions($NameOfInfatry);
-    string $nameFile = ( $IsPathOfShadowart + $NameOfInfatry + "_Rig.ma");
-    file -f -o $nameFile;
-    }
-
-}
-
-
-
-
-
-
-
-
-//// Export Infantry Animation file ////    
-
-proc Infantry_to_FBX() {
-
-
-string $AnimationName_A2F = `textField -q -text AnimationName_for_Atom_to_Infantry`;
-
-float $startTime=`playbackOptions -q -min`;
-float $endTime=`playbackOptions -q -max`;
-
-string $InfatryFolderName ;
-string $NameOfInfatry = `textField -q -text UnitName_for_Atom_to_Infantry`;
-
-// Infantry folder in Git
-string $IsPathOfGit = PathGit($NameOfInfatry);
-string $IsPathOfGitMinions = PathGitMinions($NameOfInfatry);
-int $ChoiceOfDir = `radioButtonGrp -query -select CTRL_choice`;
-
-
-if($ChoiceOfDir ==1){
-    string $dirNAM_to_Unit = $IsPathOfGit + "Animations/";
-    string $fileNAM_ATOM = $NameOfInfatry + $AnimationName_A2F;
-    select `ls -typ joint`;
-        FBXExportSplitAnimationIntoTakes -clear;
-        FBXProperty Export|IncludeGrp|Animation  -v true;
-        FBXProperty Export|IncludeGrp|Animation  -q;
-        FBXExportSplitAnimationIntoTakes -v $fileNAM_ATOM $startTime $endTime;
-        FBXExport -f ($dirNAM_to_Unit + $fileNAM_ATOM + ".fbx") -s;
-    }
-
-
-if($ChoiceOfDir ==2){
-    string $dirNAM_to_Unit = $IsPathOfGitMinions + "Animations/";
-    string $fileNAM_ATOM = $NameOfInfatry + $AnimationName_A2F;
-    select `ls -typ joint`;
-        FBXExportSplitAnimationIntoTakes -clear;
-        FBXProperty Export|IncludeGrp|Animation  -v true;
-        FBXProperty Export|IncludeGrp|Animation  -q;
-        FBXExportSplitAnimationIntoTakes -v $fileNAM_ATOM $startTime $endTime;
-        FBXExport -f ($dirNAM_to_Unit + $fileNAM_ATOM + ".fbx") -s;
-    }
-
-
-
-}
-
-
-
-
-
-
-
-proc Export_InfantryModel()  {
-
-string $meshe[] = `ls -sl`;
-
-string $NameOfInfatry = `textField -q -text UnitName_for_Atom_to_Infantry`;
-
-// Infantry folder in Git
-string $IsPathOfGit = PathGit($NameOfInfatry);
-string $IsPathOfGitMinions = PathGitMinions($NameOfInfatry);
-int $ChoiceOfDir = `radioButtonGrp -query -select CTRL_choice`;
-
-string $meshRenamer[];
-$meshRenamer[0] = $NameOfInfatry + "_mesh";
-$meshRenamer[1] = $NameOfInfatry + "Gun1_mesh";
-$meshRenamer[2] = $NameOfInfatry + "Gun2_mesh";
-$meshRenamer[3] = $NameOfInfatry + "Gun2_mesh";
-$meshRenamer[4] = $NameOfInfatry + "Gun2_mesh";
-
-    for ($i = 0; $i < size($meshe); $i++) { 
-
-        rename $meshe[$i] $meshRenamer[$i];
-    } 
-
-
-
-    for ($i = 0; $i < size($meshe); $i++) { 
-
-        select -add $meshRenamer[$i];
-        print ($meshRenamer[$i] + "\n");
-    } 
-
-
-
-if($ChoiceOfDir ==1){
-    FBXProperty Export|IncludeGrp|Animation  -v false;
-    FBXProperty Export|IncludeGrp|Animation  -q;
-    FBXExport -f ($IsPathOfGit + $NameOfInfatry  + "_model.fbx") -s;
-    }
-
-if($ChoiceOfDir ==2){
-    FBXProperty Export|IncludeGrp|Animation  -v false;
-    FBXProperty Export|IncludeGrp|Animation  -q;
-    FBXExport -f ($IsPathOfGitMinions + $NameOfInfatry  + "_model.fbx") -s;
-    }
-
-
-}
-
-
-
-
-
-
-
-
-
-//// Import other Infantrys Atom file into Rig  "->ATOM" ////    
-
-proc import_ATOM_to_Rig()   {
-
-string $AnimationName_A2F = `textField -q -text AnimationName_for_Atom_to_Infantry`;
-string $NameOfInfatry = `textField -q -text UnitName_for_Atom_to_Infantry`;
-
-
-
-
-
-//string $nameFile = ( $IsRefPathOfShadowart + $IsRefGroupNameOfInfatry + ".ma");
-
-//file -import -type "atomImport" -ra true -namespace "" -options $TempForAtomPath $AtomfilePathRef;
-
-
-}
-
-
-
-
-
-
-
-//////  delete key animation from static skeletons
-
-proc cutNonSkelKey()   {
-select -r ROOT;
-select -hi;
-string $selNSkel[] = `ls -sl -typ joint`;
-
-    for ($eachNSkel in $selNSkel) {
-
-    cutKey $eachNSkel;
-
-    }
-
-}
-
-
-
-
-
-
-
-
-//// Window   ////
+//// UI   ////
 
 proc ATOM_TO_FBX_for_Infantry_window() {
 
@@ -483,13 +189,303 @@ proc ATOM_TO_FBX_for_Infantry_window() {
             setParent ..;
 
 
-
-
-
-
 showWindow Infantry_Export_Fbx;
+}
+
+
+
+
+
+proc Bake_Rename() {
+
+    if( `objExists RRM_MAIN` ) {
+        unitreset();
+        bakeSkel();
+        deljunk(); 
+        takeoffendname();    
+        takeofffirstname();  
+        removeRef();
+    } 
+    else {
+        takeofffirstname();  
+        removeRef(); 
+    }
+}
+
+
+
+
+
+
+proc unitreset()    {
+    currentUnit -linear "cm"; 
+    currentUnit -query -linear; 
+    currentUnit -time ntsc;
+}
+
+
+
+
+
+
+proc bakeSkel()   {
+    int $strf =`intField  -q -v craStartFrameIF`;
+    int $endf =`intField  -q -v craEndFrameIF`;
+    playbackOptions -min $strf  -max $endf ;
+    select `ls -typ joint`;
+    $bakeFrame = $strf + ":" + $endf;
+    bakeSimulation -t $bakeFrame;
+}    
+
+
+
+
+
+proc deljunk()   {
+    select "*MAINSHJnt*";
+    select -hi; 
+    $SHJoints = `ls -sl -type "joint"`;
+    string $each;
+    for ($each in $SHJoints)
+    {
+      delete -constraints $each;
+    }
+    select "*MAINSHJnt*";
+    parent -w;
+    select -hi RRM_MAIN;
+    $rig = `ls -sl`;
+    lockNode -lock off $rig;
+    delete RRM_MAIN;
+    
+    select "*MAINSHJnt*";
+    select -tgl `ls -typ mesh`;
+    InvertSelection;
+    doDelete;
+} 
+
+
+
+
+
+proc takeofffirstname()   {
+    string $NameToRemove = `textField -q -text RemovePrefix`;
+    select "*MAIN*";
+    select -hi;
+    string $sel[] = `ls -sl -typ joint`;
+    for ($each in $sel) {
+        string $NewName = substituteAllString ($each , $NameToRemove , "");
+        print ($NewName + "\n");
+        rename $each $NewName;
+     }
+}
+
+
+
+
+
+
+proc takeoffendname()   {
+    select "*MAINSHJnt*";
+    select -hi;
+    string $sel[] = `ls -sl -typ joint`;
+    for ($each in $sel) {
+        string $NewName = substituteAllString ($each , "SHJnt" , "");
+        print ($NewName + "\n");
+        rename $each $NewName;
+     }
+}
+
+
+
+
+
+
+proc removeRef()    {
+string $mes[] = `ls -references refRN`;
+    
+    if ( size($mes) == 0 ){
+        print " Hey, you dont have ref.. files. no worry!";
+    }
+
+    else {
+        file -removeReference -referenceNode "refRN";
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+//// Open Infantry rig file ////    - Okay -   - Okay -   - Okay -   - Okay -   - Okay -   
+
+proc Open_Infantry_File() {
+    
+string $NameOfInfatry = `textField -q -text UnitName_for_Atom_to_Infantry`; 
+int $ChoiceOfDir = `radioButtonGrp -query -select CTRL_choice`;
+
+    if($ChoiceOfDir ==1){
+    // Path of Infantry folder in shadowart
+    string $IsPathOfShadowart = PathHeroes($NameOfInfatry);
+    string $nameFile = ( $IsPathOfShadowart + $NameOfInfatry + "_Rig.ma");
+    file -f -o $nameFile;
+    }
+
+
+    if($ChoiceOfDir ==2){
+    // Path of Infantry folder in shadowart
+    string $IsPathOfShadowart = PathMinions($NameOfInfatry);
+    string $nameFile = ( $IsPathOfShadowart + $NameOfInfatry + "_Rig.ma");
+    file -f -o $nameFile;
+    }
 
 }
+
+
+
+
+
+
+
+
+//// Export Infantry Animation file ////    
+
+proc Infantry_to_FBX() {
+
+string $AnimationName_A2F = `textField -q -text AnimationName_for_Atom_to_Infantry`;
+
+float $startTime=`playbackOptions -q -min`;
+float $endTime=`playbackOptions -q -max`;
+
+string $InfatryFolderName ;
+string $NameOfInfatry = `textField -q -text UnitName_for_Atom_to_Infantry`;
+
+// Infantry folder in Git
+string $IsPathOfGit = PathGit($NameOfInfatry);
+string $IsPathOfGitMinions = PathGitMinions($NameOfInfatry);
+int $ChoiceOfDir = `radioButtonGrp -query -select CTRL_choice`;
+
+
+if($ChoiceOfDir ==1){
+    string $dirNAM_to_Unit = $IsPathOfGit + "Animations/";
+    string $fileNAM_ATOM = $NameOfInfatry + $AnimationName_A2F;
+    select `ls -typ joint`;
+        FBXExportSplitAnimationIntoTakes -clear;
+        FBXProperty Export|IncludeGrp|Animation  -v true;
+        FBXProperty Export|IncludeGrp|Animation  -q;
+        FBXExportSplitAnimationIntoTakes -v $fileNAM_ATOM $startTime $endTime;
+        FBXExport -f ($dirNAM_to_Unit + $fileNAM_ATOM + ".fbx") -s;
+    }
+
+
+if($ChoiceOfDir ==2){
+    string $dirNAM_to_Unit = $IsPathOfGitMinions + "Animations/";
+    string $fileNAM_ATOM = $NameOfInfatry + $AnimationName_A2F;
+    select `ls -typ joint`;
+        FBXExportSplitAnimationIntoTakes -clear;
+        FBXProperty Export|IncludeGrp|Animation  -v true;
+        FBXProperty Export|IncludeGrp|Animation  -q;
+        FBXExportSplitAnimationIntoTakes -v $fileNAM_ATOM $startTime $endTime;
+        FBXExport -f ($dirNAM_to_Unit + $fileNAM_ATOM + ".fbx") -s;
+    }
+
+}
+
+
+
+
+
+
+
+proc Export_InfantryModel()  {
+
+string $meshe[] = `ls -sl`;
+
+string $NameOfInfatry = `textField -q -text UnitName_for_Atom_to_Infantry`;
+
+string $IsPathOfGit = PathGit($NameOfInfatry);
+string $IsPathOfGitMinions = PathGitMinions($NameOfInfatry);
+int $ChoiceOfDir = `radioButtonGrp -query -select CTRL_choice`;
+
+string $meshRenamer[];
+$meshRenamer[0] = $NameOfInfatry + "_mesh";
+$meshRenamer[1] = $NameOfInfatry + "Gun1_mesh";
+$meshRenamer[2] = $NameOfInfatry + "Gun2_mesh";
+$meshRenamer[3] = $NameOfInfatry + "Gun2_mesh";
+$meshRenamer[4] = $NameOfInfatry + "Gun2_mesh";
+
+    for ($i = 0; $i < size($meshe); $i++) { 
+        rename $meshe[$i] $meshRenamer[$i];
+    } 
+
+
+
+    for ($i = 0; $i < size($meshe); $i++) { 
+        select -add $meshRenamer[$i];
+        print ($meshRenamer[$i] + "\n");
+    } 
+
+
+
+if($ChoiceOfDir ==1){
+    FBXProperty Export|IncludeGrp|Animation  -v false;
+    FBXProperty Export|IncludeGrp|Animation  -q;
+    FBXExport -f ($IsPathOfGit + $NameOfInfatry  + "_model.fbx") -s;
+    }
+
+if($ChoiceOfDir ==2){
+    FBXProperty Export|IncludeGrp|Animation  -v false;
+    FBXProperty Export|IncludeGrp|Animation  -q;
+    FBXExport -f ($IsPathOfGitMinions + $NameOfInfatry  + "_model.fbx") -s;
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+//// Import other Infantrys Atom file into Rig  "->ATOM" ////    
+
+proc import_ATOM_to_Rig()   {
+string $AnimationName_A2F = `textField -q -text AnimationName_for_Atom_to_Infantry`;
+string $NameOfInfatry = `textField -q -text UnitName_for_Atom_to_Infantry`;
+
+}
+
+
+
+
+
+
+
+//////  delete key animation from static skeletons
+
+proc cutNonSkelKey()   {
+select -r ROOT;
+select -hi;
+string $selNSkel[] = `ls -sl -typ joint`;
+    for ($eachNSkel in $selNSkel) {
+    cutKey $eachNSkel;
+    }
+
+}
+
+
+
+
+
 
 
 proc SetMetric()   {
@@ -508,8 +504,6 @@ proc SetMetric()   {
     setAttr "perspShape.nearClipPlane" 10;
     setAttr "perspShape.farClipPlane" 10000000;
     currentTime 0 ;
-
-
 }
 
 
@@ -521,48 +515,33 @@ proc SetMetric()   {
 proc Connect_Rig_Mocap()  {
 
     string $NameToRemove = `textField -q -text RemovePrefix`;
-//    string $MocapNameToRemove = `textField -q -text RemoveMocapPrefix`;
     string $MocapNameToRemove = "Temp_";
 
     // Controller //
 
     eval( "setAttr " +  $NameToRemove + "r_Arm_WristIKCtrl.parent" + " 1");
     eval( "setAttr " +  $NameToRemove + "l_Arm_WristIKCtrl.parent" + " 1");
-
     eval( "setAttr " +  $NameToRemove + "l_Arm_SwitchCtrl.switchIkFk" + " 0");
     eval( "setAttr " +  $NameToRemove + "r_Arm_SwitchCtrl.switchIkFk" + " 0");
-
     eval( "setAttr " +  $NameToRemove + "l_Arm_ElbowIKCtrl.follow" + " 0");
     eval( "setAttr " +  $NameToRemove + "r_Arm_ElbowIKCtrl.follow" + " 0");
-
     eval( "setAttr " +  $NameToRemove + "l_Leg_KneeIKCtrl.follow" + " 0");
     eval( "setAttr " +  $NameToRemove + "r_Leg_KneeIKCtrl.follow" + " 0");    
-
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "ROOT " +  $NameToRemove + "ROOTCtrl");    
-
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "l_Arm_Wrist " +  $NameToRemove + "l_Arm_WristIKCtrl"); 
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "r_Arm_Wrist " +  $NameToRemove + "r_Arm_WristIKCtrl"); 
-
     eval( "parentConstraint -mo -skipRotate x -skipRotate y -skipRotate z -weight 1 " + $MocapNameToRemove + "l_Arm_Elbow " +  $NameToRemove + "l_Arm_ElbowIKCtrl"); 
     eval( "parentConstraint -mo -skipRotate x -skipRotate y -skipRotate z -weight 1 " + $MocapNameToRemove + "r_Arm_Elbow " +  $NameToRemove + "r_Arm_ElbowIKCtrl"); 
-
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "l_Leg_Ankle " +  $NameToRemove + "l_Leg_FootIKCtrl"); 
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "r_Leg_Ankle " +  $NameToRemove + "r_Leg_FootIKCtrl"); 
-
-
     eval( "parentConstraint -mo -skipRotate x -skipRotate y -skipRotate z -weight 1 " + $MocapNameToRemove + "l_Leg_Knee " +  $NameToRemove + "l_Leg_KneeIKCtrl"); 
     eval( "parentConstraint -mo -skipRotate x -skipRotate y -skipRotate z -weight 1 " + $MocapNameToRemove + "r_Leg_Knee " +  $NameToRemove + "r_Leg_KneeIKCtrl"); 
-
-
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "l_Arm_Clavicle " +  $NameToRemove + "l_Arm_ClavicleCtrl"); 
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "r_Arm_Clavicle " +  $NameToRemove + "r_Arm_ClavicleCtrl"); 
-
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "Neck_01 " +  $NameToRemove + "Neck_01FKCtrl"); 
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "Neck_Top " +  $NameToRemove + "Neck_TopIKCtrl"); 
-
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "Spine_01 " +  $NameToRemove + "Spine_01FKCtrl"); 
     eval( "parentConstraint -mo -weight 1 " + $MocapNameToRemove + "Spine_Top " +  $NameToRemove + "Spine_TopIKCtrl");    
-
   }
 
 
@@ -579,36 +558,24 @@ proc Select_Con_to_Bake()   {
 
     eval( "select -r " +  $NameToRemove + "r_Arm_ElbowIKCtrl" ); 
     eval( "select -tgl " +  $NameToRemove + "l_Arm_ElbowIKCtrl" ); 
-
     eval( "select -tgl " +  $NameToRemove + "Neck_TopIKCtrl" ); 
     eval( "select -tgl " +  $NameToRemove + "Neck_01FKCtrl" ); 
-
-
-
     eval( "select -tgl " +  $NameToRemove + "l_Arm_WristIKCtrl" ); 
     eval( "select -tgl " +  $NameToRemove + "r_Arm_WristIKCtrl" ); 
-
     eval( "select -tgl " +  $NameToRemove + "l_Arm_ClavicleCtrl" ); 
     eval( "select -tgl " +  $NameToRemove + "r_Arm_ClavicleCtrl" ); 
-
     eval( "select -tgl " +  $NameToRemove + "Spine_TopIKCtrl" ); 
     eval( "select -tgl " +  $NameToRemove + "Spine_01FKCtrl" ); 
-
     eval( "select -tgl " +  $NameToRemove + "ROOTCtrl" ); 
-
     eval( "select -tgl " +  $NameToRemove + "l_Leg_FootIKCtrl" ); 
     eval( "select -tgl " +  $NameToRemove + "r_Leg_FootIKCtrl" ); 
     eval( "select -tgl " +  $NameToRemove + "l_Leg_KneeIKCtrl" ); 
     eval( "select -tgl " +  $NameToRemove + "r_Leg_KneeIKCtrl" ); 
 
-
     float $strf = `playbackOptions -q -min`;
     float $endf = `playbackOptions -q -max`;
-//    playbackOptions -min $strf  -max $endf ;
     $bakeFrame = $strf + ":" + $endf;
     bakeSimulation -t $bakeFrame;
-
-
 
 }
 
@@ -621,10 +588,7 @@ proc CharacterizeiPiSoft()    {
 
 HIKCharacterControlsTool;
 hikCreateCharacter( "Character1" );hikOnSwitchContextualTabs;
-//connectAttr l_Leg_Hip.Character Character1.LeftUpLeg;
-
 setCharacterObject("MAIN","Character1",0,0);
-//setCharacterObject("Neck_01","Character1",20,0);
 setCharacterObject("Neck_Top","Character1",15,0);
 setCharacterObject("ROOT","Character1",1,0);
 setCharacterObject("Spine_01","Character1",8,0);
@@ -646,10 +610,7 @@ setCharacterObject("r_Leg_Ball","Character1",17,0);
 setCharacterObject("r_Leg_Hip","Character1",5,0);
 setCharacterObject("r_Leg_Knee","Character1",6,0);
 
-
 hikOnSwitchContextualTabs;
-//hikOnSwitchContextualTabs; hikUpdateContextualUI;
-
 }
 
 
@@ -663,8 +624,6 @@ proc CharacterizeRokokoGuy()    {
 
 HIKCharacterControlsTool;
 hikCreateCharacter( "Character1" );hikOnSwitchContextualTabs;
-//connectAttr l_Leg_Hip.Character Character1.LeftUpLeg;
-
 setCharacterObject("RokokoGuy_Spine2","Character1",23,0);
 setCharacterObject("RokokoGuy_Head","Character1",15,0);
 setCharacterObject("RokokoGuy_Hips","Character1",1,0);
@@ -677,7 +636,6 @@ setCharacterObject("RokokoGuy_LeftArm","Character1",9,0);
 setCharacterObject("RokokoGuy_LeftUpLeg","Character1",2,0);
 setCharacterObject("RokokoGuy_LeftToe","Character1",16,0);
 setCharacterObject("RokokoGuy_Spine","Character1",8,0);
-//setCharacterObject("RokokoGuy_Neck","Character1",20,0);
 setCharacterObject("RokokoGuy_RightShoulder","Character1",19,0);
 setCharacterObject("RokokoGuy_RightFoot","Character1",7,0);
 setCharacterObject("RokokoGuy_RightForeArm","Character1",13,0);
@@ -688,8 +646,6 @@ setCharacterObject("RokokoGuy_RightUpLeg","Character1",5,0);
 setCharacterObject("RokokoGuy_RightToe","Character1",17,0);
 
 hikOnSwitchContextualTabs;
-//hikOnSwitchContextualTabs; hikUpdateContextualUI;
-
 }
 
 
@@ -706,8 +662,6 @@ string $prefixofFBX = `textField -q -text RemoveMocapPrefix`;
 
 HIKCharacterControlsTool;
 hikCreateCharacter( "Character1" );hikOnSwitchContextualTabs;
-//connectAttr l_Leg_Hip.Character Character1.LeftUpLeg;
-
 setCharacterObject(($prefixofFBX + "MAIN"),"Character1",0,0);
 setCharacterObject(($prefixofFBX + "Spine_Top"),"Character1",23,0);
 setCharacterObject(($prefixofFBX + "Neck_Top"),"Character1",15,0);
@@ -721,7 +675,6 @@ setCharacterObject(($prefixofFBX + "l_Arm_Shoulder"),"Character1",9,0);
 setCharacterObject(($prefixofFBX + "l_Leg_Hip"),"Character1",2,0);
 setCharacterObject(($prefixofFBX + "l_Leg_Ball"),"Character1",16,0);
 setCharacterObject(($prefixofFBX + "Spine_01"),"Character1",8,0);
-//setCharacterObject("Neck","Character1",20,0);
 setCharacterObject(($prefixofFBX + "r_Arm_Clavicle"),"Character1",19,0);
 setCharacterObject(($prefixofFBX + "r_Leg_Ankle"),"Character1",7,0);
 setCharacterObject(($prefixofFBX + "r_Arm_Elbow"),"Character1",13,0);
@@ -732,8 +685,6 @@ setCharacterObject(($prefixofFBX + "r_Leg_Hip"),"Character1",5,0);
 setCharacterObject(($prefixofFBX + "r_Leg_Ball"),"Character1",17,0);
 
 hikOnSwitchContextualTabs;
-//hikOnSwitchContextualTabs; hikUpdateContextualUI;
-
 }
 
 
@@ -747,9 +698,7 @@ hikOnSwitchContextualTabs;
 
 
 proc DoCharacterize()    {
-
     Bake_Rename();
-
     select -r ROOT;
     cutNonSkelKey();
 
@@ -770,10 +719,8 @@ proc DoCharacterize()    {
 
 proc importFBXfile ()
 {
-
     string $fileNameofFile[] = `fileDialog2 -cap "Import file" -fm 1 -okc "Import"`;
     file -import -ignoreVersion -namespace "RokokoGuy_" $fileNameofFile;    
-
 }
 
 
