@@ -43,7 +43,7 @@ def createUI():
     
 
 
-#reassign textures using UI
+
 def OptimizeScene():
 
     PathtoAsset = mc.textField('directoryTextField', q= True, text = True)
